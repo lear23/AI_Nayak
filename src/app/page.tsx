@@ -126,7 +126,7 @@ export default function CodeAssistant() {
                 <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold">Code Assistant</h1>
+            <h1 className="text-xl font-semibold">Your local Assistant+</h1>
           </div>
           <div className="text-gray-400 text-md">
             Model: Ollama2.3:3b
@@ -213,7 +213,7 @@ export default function CodeAssistant() {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Warning: this model AI_ELSAK may generate incorrect information.
+            Warning: this model AI_NAYAK may generate incorrect information.
           </p>
         </div>
       </div>
