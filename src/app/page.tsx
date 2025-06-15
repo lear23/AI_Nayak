@@ -5,12 +5,21 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import type { Components } from 'react-markdown';
+import { ReactNode } from 'react';
+import React from 'react';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   id: string;
+}
+
+interface CodeProps {
+  inline?: boolean;
+  className?: string;
+  children?: ReactNode;
+  [key: string]: any;
 }
 
 export default function CodeAssistant() {
@@ -121,34 +130,39 @@ export default function CodeAssistant() {
     setMessages((prev) => prev.filter((msg) => msg.id !== id));
   };
 
-const markdownComponents: Components = {
-  code({ inline, className, children, ...props }) {
-    const match = /language-(\w+)/.exec(className || '');
-    const language = match ? match[1] : 'plaintext';
+  const markdownComponents: Components = {
+    code({ inline, className, children, ...props }: CodeProps) {
+      const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : 'plaintext';
 
-    if (inline) {
-      return (
-        <code className={className} {...props}>
-          {children}
-        </code>
-      );
-    }
-
-    // For block code, ensure it's not nested within a <p> tag
-    return (
-      <div className="my-4 rounded-md border border-gray-700 overflow-hidden bg-gray-950">
-        <div className="bg-gray-800 px-3 py-1 text-xs font-semibold text-blue-400 border-b border-gray-700">
-          {language.toUpperCase()}
-        </div>
-        <pre className="overflow-x-auto p-3 text-sm">
+      if (inline) {
+        return (
           <code className={className} {...props}>
             {children}
           </code>
-        </pre>
-      </div>
-    );
-  },
-};
+        );
+      }
+
+      return (
+        <div className="my-4 rounded-md border border-gray-700 overflow-hidden bg-gray-950">
+          <div className="bg-gray-800 px-3 py-1 text-xs font-semibold text-blue-400 border-b border-gray-700">
+            {language.toUpperCase()}
+          </div>
+          <pre className="overflow-x-auto p-3 text-sm" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+            <code className={className} {...props}>
+              {children}
+            </code>
+          </pre>
+        </div>
+      );
+    },
+    p({ children }) {
+      if (React.Children.toArray(children).some(child => typeof child !== 'string')) {
+        return <>{children}</>;
+      }
+      return <p style={{ wordBreak: 'break-word' }}>{children}</p>;
+    },
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
@@ -173,8 +187,19 @@ const markdownComponents: Components = {
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-center' : 'justify-center'}`}>
-              <div className={`relative max-w-full rounded-lg px-4 py-3 ${message.role === 'user' ? 'bg-blue-600/90 text-white' : 'bg-gray-800/80'}`}>
+            <div 
+              key={message.id} 
+              className={`flex ${message.role === 'user' ? 'justify-center' : 'justify-center'} w-full`}
+            >
+              <div 
+                className={`relative rounded-lg px-4 py-3 ${message.role === 'user' ? 'bg-blue-600/90 text-white' : 'bg-gray-800/80'}`}
+                style={{ 
+                  wordBreak: 'break-word', 
+                  maxWidth: '90%',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
                 {editingMessageId === message.id ? (
                   <>
                     <textarea
@@ -183,6 +208,11 @@ const markdownComponents: Components = {
                       className="w-full bg-gray-700 rounded-lg px-3 py-2 text-gray-100"
                       rows={5}
                       autoFocus
+                      style={{
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'pre-wrap'
+                      }}
                     />
                     <div className="flex justify-end space-x-2 mt-2">
                       <button onClick={cancelEdit} className="px-3 py-1 text-sm rounded bg-gray-600 hover:bg-gray-500">Cancel</button>
@@ -191,7 +221,7 @@ const markdownComponents: Components = {
                   </>
                 ) : (
                   <>
-                    <div className="prose prose-invert max-w-none overflow-hidden">
+                    <div className="prose prose-invert max-w-none overflow-hidden" style={{ wordBreak: 'break-word' }}>
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         rehypePlugins={[rehypeHighlight]}
@@ -241,7 +271,12 @@ const markdownComponents: Components = {
               placeholder="Ask anything about programming..."
               className="w-full bg-gray-700 rounded-lg px-4 py-3 pr-12 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none overflow-y-auto"
               rows={1}
-              style={{ minHeight: '56px' }}
+              style={{ 
+                minHeight: '56px',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                whiteSpace: 'pre-wrap'
+              }}
               disabled={isLoading}
             />
             <button
