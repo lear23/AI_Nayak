@@ -11,125 +11,151 @@ class FileSystemManager {
   }
 
   setBasePath(newPath: string): boolean {
-    if (fs.existsSync(newPath)) {
-      this.basePath = newPath;
+    if (!newPath || typeof newPath !== 'string') return false;
+    const resolved = path.resolve(newPath);
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+      this.basePath = resolved;
       return true;
     }
     return false;
   }
 
   private getFullPath(relativePath: string): string {
-    if (!this.basePath) {
-      throw new Error('Directorio base no establecido');
+    if (!this.basePath) throw new Error('Base path is not set.');
+    const target = path.resolve(this.basePath, relativePath);
+    if (!target.startsWith(this.basePath)) {
+      throw new Error('Access outside of base path is not allowed.');
     }
-    return path.resolve(this.basePath, relativePath);
+    return target;
   }
 
-  crear(nombrePath: string, contenido: string = '', esCarpeta: boolean = false): string {
-    const fullPath = this.getFullPath(nombrePath);
+  create(relativePath: string, content: string = '', isFolder: boolean = false): string {
+    const fullPath = this.getFullPath(relativePath);
     const dir = path.dirname(fullPath);
 
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    if (esCarpeta) {
-      fs.mkdirSync(fullPath, { recursive: true });
-      return `Carpeta creada: ${fullPath}`;
+    if (isFolder) {
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+        return `✅ Folder created: ${fullPath}`;
+      }
+      return `⚠️ Folder already exists: ${fullPath}`;
     } else {
-      fs.writeFileSync(fullPath, contenido, 'utf-8');
-      return `Archivo creado: ${fullPath}`;
+      fs.writeFileSync(fullPath, content, 'utf-8');
+      return `✅ File created: ${fullPath}`;
     }
   }
 
-  modificar(nombrePath: string, nuevoContenido: string): string {
-    const fullPath = this.getFullPath(nombrePath);
-    fs.writeFileSync(fullPath, nuevoContenido, 'utf-8');
-    return `Archivo modificado: ${fullPath}`;
+  modify(relativePath: string, newContent: string): string {
+    const fullPath = this.getFullPath(relativePath);
+    if (!fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
+      throw new Error(`Cannot modify non-existent or invalid file: ${fullPath}`);
+    }
+    fs.writeFileSync(fullPath, newContent, 'utf-8');
+    return `✏️ File modified: ${fullPath}`;
   }
 
-  borrar(nombrePath: string): string {
-    const fullPath = this.getFullPath(nombrePath);
-    const stats = fs.statSync(fullPath);
+  delete(relativePath: string): string {
+    const fullPath = this.getFullPath(relativePath);
+    if (!fs.existsSync(fullPath)) {
+      return `⚠️ Path does not exist: ${fullPath}`;
+    }
 
+    const stats = fs.statSync(fullPath);
     if (stats.isDirectory()) {
       fs.rmSync(fullPath, { recursive: true, force: true });
-      return `Carpeta eliminada: ${fullPath}`;
+      return `🗑️ Folder deleted: ${fullPath}`;
     } else {
       fs.unlinkSync(fullPath);
-      return `Archivo eliminado: ${fullPath}`;
+      return `🗑️ File deleted: ${fullPath}`;
     }
   }
 
-  mover(origen: string, destino: string): string {
-    const fullOrigen = this.getFullPath(origen);
-    const fullDestino = this.getFullPath(destino);
-    const destinoDir = path.dirname(fullDestino);
+  move(origin: string, destination: string): string {
+    const src = this.getFullPath(origin);
+    const dst = this.getFullPath(destination);
+    const dstDir = path.dirname(dst);
 
-    if (!fs.existsSync(destinoDir)) {
-      fs.mkdirSync(destinoDir, { recursive: true });
+    if (!fs.existsSync(src)) {
+      throw new Error(`Origin does not exist: ${src}`);
     }
 
-    fs.renameSync(fullOrigen, fullDestino);
-    return `Movido de ${fullOrigen} a ${fullDestino}`;
+    if (!fs.existsSync(dstDir)) {
+      fs.mkdirSync(dstDir, { recursive: true });
+    }
+
+    fs.renameSync(src, dst);
+    return `📁 Moved: ${src} → ${dst}`;
   }
 
-  copiar(origen: string, destino: string): string {
-    const fullOrigen = this.getFullPath(origen);
-    const fullDestino = this.getFullPath(destino);
-    const destinoDir = path.dirname(fullDestino);
+  copy(origin: string, destination: string): string {
+    const src = this.getFullPath(origin);
+    const dst = this.getFullPath(destination);
+    const dstDir = path.dirname(dst);
 
-    if (!fs.existsSync(destinoDir)) {
-      fs.mkdirSync(destinoDir, { recursive: true });
+    if (!fs.existsSync(src)) {
+      throw new Error(`Origin does not exist: ${src}`);
     }
 
-    const stats = fs.statSync(fullOrigen);
+    if (!fs.existsSync(dstDir)) {
+      fs.mkdirSync(dstDir, { recursive: true });
+    }
+
+    const stats = fs.statSync(src);
     if (stats.isDirectory()) {
-      this.copiarCarpeta(fullOrigen, fullDestino);
-      return `Carpeta copiada: ${fullDestino}`;
+      this.copyDirectory(src, dst);
+      return `📂 Folder copied to: ${dst}`;
     } else {
-      fs.copyFileSync(fullOrigen, fullDestino);
-      return `Archivo copiado: ${fullDestino}`;
+      fs.copyFileSync(src, dst);
+      return `📄 File copied to: ${dst}`;
     }
   }
 
-  private copiarCarpeta(origen: string, destino: string): void {
-    fs.mkdirSync(destino, { recursive: true });
-    fs.readdirSync(origen).forEach(item => {
-      const src = path.join(origen, item);
-      const dst = path.join(destino, item);
-      const stats = fs.statSync(src);
+  private copyDirectory(src: string, dst: string): void {
+    fs.mkdirSync(dst, { recursive: true });
+    fs.readdirSync(src).forEach(item => {
+      const srcItem = path.join(src, item);
+      const dstItem = path.join(dst, item);
+      const stats = fs.statSync(srcItem);
+
       if (stats.isDirectory()) {
-        this.copiarCarpeta(src, dst);
+        this.copyDirectory(srcItem, dstItem);
       } else {
-        fs.copyFileSync(src, dst);
+        fs.copyFileSync(srcItem, dstItem);
       }
     });
   }
 
-  leer(nombrePath: string): string {
-    const fullPath = this.getFullPath(nombrePath);
+  read(relativePath: string): string {
+    const fullPath = this.getFullPath(relativePath);
+    if (!fs.existsSync(fullPath)) throw new Error(`File not found: ${fullPath}`);
     return fs.readFileSync(fullPath, 'utf-8');
   }
 
-  listar(carpetaPath: string = '.'): string {
-    const fullPath = this.getFullPath(carpetaPath);
-    const items = fs.readdirSync(fullPath);
+  list(relativePath: string = '.'): string {
+    const dirPath = this.getFullPath(relativePath);
+    if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+      throw new Error(`Invalid directory: ${dirPath}`);
+    }
 
+    const items = fs.readdirSync(dirPath);
     return items
       .map(item => {
-        const itemPath = path.join(fullPath, item);
+        const itemPath = path.join(dirPath, item);
         const stats = fs.statSync(itemPath);
-        const tipo: FileSystemItemType = stats.isDirectory() ? 'directory' : 'file';
-        return `${tipo}: ${item}`;
+        const type: FileSystemItemType = stats.isDirectory() ? 'directory' : 'file';
+        return `${type}: ${item}`;
       })
       .join('\n');
   }
 
   getSystemInfo(): string {
-    if (!this.basePath) return 'No hay carpeta base establecida';
+    if (!this.basePath) return '⚠️ Base path is not set.';
     const stats = fs.statSync(this.basePath);
-    return `Base: ${this.basePath}\nÚltima modificación: ${stats.mtime}`;
+    return `📌 Base Path: ${this.basePath}\n🕓 Last Modified: ${stats.mtime}`;
   }
 }
 

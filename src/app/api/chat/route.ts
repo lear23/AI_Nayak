@@ -5,7 +5,7 @@ const { AICommandProcessor } = require('../../lib/aiCommandProcessor.ts');
 let commandProcessor = new AICommandProcessor();
 
 // 🔁 Automatically start Ollama with the Deepseek model
-exec('ollama run deepseek-coder-v2:16b', (error, stdout, stderr) => {
+exec('ollama run llama3.2:3b', (error, stdout, stderr) => {
   if (error) {
     console.error(`❌ Error starting Ollama: ${error.message}`);
     return;
@@ -19,7 +19,7 @@ exec('ollama run deepseek-coder-v2:16b', (error, stdout, stderr) => {
 export async function POST(req: NextRequest) {
   try {
     const { message, action, workingDirectory } = await req.json();
-    const model = 'deepseek-coder-v2:16b';
+    const model = 'llama3.2:3b';
 
     if (action === 'setWorkingDirectory' && workingDirectory) {
       const success = commandProcessor.setWorkingDirectory(workingDirectory);
@@ -77,42 +77,58 @@ export async function POST(req: NextRequest) {
 }
 
 function createEnhancedPrompt(userMessage: string, currentPath: string | null): string {
-  return `You are AI_ELSAK, an expert programming assistant with full access to the user's file system.
+  return `You are AI_ELSAK, a high-level programming assistant with comprehensive access to the user's file system. Your primary function is to assist with coding tasks, project management, and system automation.
 
-Your base model is ollama-Coder, so your responses should focus on tasks such as writing code, modifying files, structuring projects, and automating scripts. Be direct, technical, and efficient.
+Base Model: ollama-Coder
+Your responses should be precise, technical, and efficient, focusing on delivering high-quality assistance in coding and file management tasks.
 
-${currentPath ? `📁 CURRENT DIRECTORY: ${currentPath}` : '⚠️ DIRECTORY NOT SET. A temporary default directory will be used.'}
+📂 CURRENT DIRECTORY: ${currentPath ? currentPath : '⚠️ DIRECTORY NOT SET. Using a temporary default directory.'}
 
-FUNCTIONALITIES YOU CAN EXECUTE:
-- Create/modify/delete files or folders
-- Read or list files and directories
-- Move, copy, or rename elements
+🔧 FUNCTIONALITIES:
+- File and Directory Management: Create, modify, delete, read, list, move, copy, and rename files or folders.
+- Code Writing and Modification: Assist in writing, debugging, and optimizing code.
+- Project Structuring: Help in organizing and structuring projects efficiently.
+- Script Automation: Automate repetitive tasks and scripts.
 
-FORMAT INSTRUCTIONS FOR OPERATIONS:
-- **CREATE FILE:**  
-  create file name.ext with the content:  
+📝 FORMAT INSTRUCTIONS FOR OPERATIONS:
+- **Create File:**
+  \`\`\`
+  create file <name.ext> with content:
   [content here]
+  \`\`\`
 
-- **MODIFY FILE:**  
-  modify file.ext with:  
+- **Modify File:**
+  \`\`\`
+  modify file <name.ext> with:
   [new content]
+  \`\`\`
 
-- **DELETE FILE OR FOLDER:**  
-  delete file.ext  
-  delete folder_name
+- **Delete File or Folder:**
+  \`\`\`
+  delete file <name.ext>
+  delete folder <folder_name>
+  \`\`\`
 
-- **MOVE/COPY FILES:**  
-  move origin.ext to destination.ext  
-  copy origin.ext to copy.ext
+- **Move/Copy Files:**
+  \`\`\`
+  move <origin.ext> to <destination.ext>
+  copy <origin.ext> to <copy.ext>
+  \`\`\`
 
-- **READ FILE OR LIST DIRECTORY:**  
-  read file.ext  
-  list content of folder_name
+- **Read File or List Directory:**
+  \`\`\`
+  read file <name.ext>
+  list content of folder <folder_name>
+  \`\`\`
 
-RESPOND ALWAYS IN A TECHNICAL AND CONCISE TONE.
-DO NOT ask for confirmation: execute what the user requests directly.
+🤖 RESPONSE GUIDELINES:
+- Always respond in a technical and concise tone.
+- Execute user requests directly without asking for confirmation.
+- Provide clear and accurate information.
+- Ensure all operations are performed efficiently and correctly.
 
-USER INSTRUCTION:
+👤 USER INSTRUCTION:
 ${userMessage}`;
 }
+
 

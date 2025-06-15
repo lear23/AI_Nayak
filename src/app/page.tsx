@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import type { Components } from 'react-markdown';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -25,11 +26,10 @@ export default function CodeAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const maxHeight = 120; // 4 lines (assuming line-height ~30px)
+      const maxHeight = 120;
       const newHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
       textareaRef.current.style.height = `${newHeight}px`;
     }
@@ -44,10 +44,10 @@ export default function CodeAssistant() {
       role: 'user',
       content: input,
       timestamp: new Date(),
-      id: generateId()
+      id: generateId(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -64,18 +64,18 @@ export default function CodeAssistant() {
         role: 'assistant',
         content: data.response || data.error || 'No response from server',
         timestamp: new Date(),
-        id: generateId()
+        id: generateId(),
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
           content: 'Error connecting to the server',
           timestamp: new Date(),
-          id: generateId()
+          id: generateId(),
         },
       ]);
     } finally {
@@ -95,6 +95,7 @@ export default function CodeAssistant() {
   };
 
   const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
+
   const startEdit = (message: ChatMessage) => {
     setEditingMessageId(message.id);
     setEditContent(message.content);
@@ -102,7 +103,11 @@ export default function CodeAssistant() {
 
   const saveEdit = () => {
     if (!editingMessageId) return;
-    setMessages(prev => prev.map(msg => msg.id === editingMessageId ? { ...msg, content: editContent } : msg));
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === editingMessageId ? { ...msg, content: editContent } : msg
+      )
+    );
     setEditingMessageId(null);
     setEditContent('');
   };
@@ -113,8 +118,37 @@ export default function CodeAssistant() {
   };
 
   const deleteMessage = (id: string) => {
-    setMessages(prev => prev.filter(msg => msg.id !== id));
+    setMessages((prev) => prev.filter((msg) => msg.id !== id));
   };
+
+const markdownComponents: Components = {
+  code({ inline, className, children, ...props }) {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : 'plaintext';
+
+    if (inline) {
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    }
+
+    // For block code, ensure it's not nested within a <p> tag
+    return (
+      <div className="my-4 rounded-md border border-gray-700 overflow-hidden bg-gray-950">
+        <div className="bg-gray-800 px-3 py-1 text-xs font-semibold text-blue-400 border-b border-gray-700">
+          {language.toUpperCase()}
+        </div>
+        <pre className="overflow-x-auto p-3 text-sm">
+          <code className={className} {...props}>
+            {children}
+          </code>
+        </pre>
+      </div>
+    );
+  },
+};
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
@@ -123,22 +157,24 @@ export default function CodeAssistant() {
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <h1 className="text-xl font-semibold">Your local Assistant+</h1>
           </div>
-          <div className="text-gray-400 text-md">
-            Model: Ollama2.3:3b
-          </div>
+          <div className="text-gray-400 text-md">Model: Llama3.2:3b</div>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`relative max-w-[85%] rounded-lg px-4 py-3 ${message.role === 'user' ? 'bg-blue-600/90 text-white' : 'bg-gray-800/80'}`}>
+            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-center' : 'justify-center'}`}>
+              <div className={`relative max-w-full rounded-lg px-4 py-3 ${message.role === 'user' ? 'bg-blue-600/90 text-white' : 'bg-gray-800/80'}`}>
                 {editingMessageId === message.id ? (
                   <>
                     <textarea
@@ -156,7 +192,11 @@ export default function CodeAssistant() {
                 ) : (
                   <>
                     <div className="prose prose-invert max-w-none overflow-hidden">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={markdownComponents}
+                      >
                         {message.content}
                       </ReactMarkdown>
                     </div>
@@ -176,8 +216,8 @@ export default function CodeAssistant() {
             </div>
           ))}
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-800/80 rounded-lg px-4 py-3 max-w-[85%]">
+            <div className="flex justify-center">
+              <div className="bg-gray-800/80 rounded-lg px-4 py-3 max-w-full">
                 <div className="flex space-x-2">
                   <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce"></div>
                   <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce delay-200"></div>
