@@ -6,7 +6,15 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup": "node distribution/scripts/setup.js",
+    "setup-windows": "powershell -ExecutionPolicy Bypass -File distribution/scripts/install-windows.ps1",
+    "setup-unix": "chmod +x distribution/scripts/install-unix.sh && ./distribution/scripts/install-unix.sh",
+    "package": "powershell -ExecutionPolicy Bypass -File distribution/scripts/package.ps1",
+    "package-unix": "chmod +x distribution/scripts/package.sh && ./distribution/scripts/package.sh",
+    "create-installer": "powershell -ExecutionPolicy Bypass -File distribution/installer/create-installer.ps1",
+    "create-installer-unix": "chmod +x distribution/installer/create-installer.sh && ./distribution/installer/create-installer.sh",
+    "dist-all": "npm run build && npm run create-installer && npm run create-installer-unix"
   },
   "dependencies": {
     "next": "15.3.3",
