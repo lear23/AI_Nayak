@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { exec } from 'child_process';
 
 const { AICommandProcessor } = require('../../lib/aiCommandProcessor.ts');
 let commandProcessor = new AICommandProcessor();
 
-// 🔁 Automatically start Ollama with the Deepseek model
 exec('ollama run llama3.2:3b', (error, stdout, stderr) => {
   if (error) {
     console.error(`❌ Error starting Ollama: ${error.message}`);
@@ -17,118 +16,113 @@ exec('ollama run llama3.2:3b', (error, stdout, stderr) => {
 });
 
 export async function POST(req: NextRequest) {
-  try {
-    const { message, action, workingDirectory } = await req.json();
-    const model = 'llama3.2:3b';
+  const { message, action, workingDirectory } = await req.json();
+  const model = 'llama3.2:3b';
 
-    if (action === 'setWorkingDirectory' && workingDirectory) {
-      const success = commandProcessor.setWorkingDirectory(workingDirectory);
-      return NextResponse.json({
+  if (action === 'setWorkingDirectory' && workingDirectory) {
+    const success = commandProcessor.setWorkingDirectory(workingDirectory);
+    return new Response(
+      JSON.stringify({
         success,
         message: success
           ? `✅ Working directory set to: ${workingDirectory}`
           : `❌ Unable to set the directory: ${workingDirectory}`
-      });
-    }
-
-    if (action === 'getSystemInfo') {
-      const info = commandProcessor.getSystemInfo();
-      return NextResponse.json({ systemInfo: info });
-    }
-
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Invalid message' }, { status: 400 });
-    }
-
-    const enhancedPrompt = createEnhancedPrompt(message, commandProcessor.getCurrentPath());
-
-    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt: enhancedPrompt,
-        stream: false,
       }),
-    });
-
-    if (!ollamaResponse.ok) {
-      throw new Error('Error communicating with Ollama');
-    }
-
-    const data = await ollamaResponse.json();
-    const aiResponse = data.response;
-
-    let fileOperationResult = '';
-    if (commandProcessor.getCurrentPath()) {
-      fileOperationResult = commandProcessor.processCommand(message, aiResponse);
-    }
-
-    return NextResponse.json({
-      response: aiResponse,
-      fileOperationResult,
-      currentDirectory: commandProcessor.getCurrentPath()
-    });
-
-  } catch (error) {
-    console.error('❌ Error in the backend:', error);
-    return NextResponse.json({ error: 'There was a problem processing the request' }, { status: 500 });
+      { status: 200 }
+    );
   }
+
+  if (action === 'getSystemInfo') {
+    const info = commandProcessor.getSystemInfo();
+    return new Response(JSON.stringify({ systemInfo: info }), { status: 200 });
+  }
+
+  if (!message || typeof message !== 'string') {
+    return new Response(JSON.stringify({ error: 'Invalid message' }), { status: 400 });
+  }
+
+  const enhancedPrompt = createEnhancedPrompt(message, commandProcessor.getCurrentPath());
+
+  const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      prompt: enhancedPrompt,
+      stream: true,
+    }),
+  });
+
+  if (!ollamaResponse.ok || !ollamaResponse.body) {
+    return new Response(JSON.stringify({ error: 'Error communicating with Ollama' }), { status: 500 });
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const decoder = new TextDecoder();
+      if (!ollamaResponse.body) {
+        controller.error('Ollama response body is null.');
+        return;
+      }
+      const reader = ollamaResponse.body.getReader();
+
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        fullResponse += chunk;
+
+        // Send token to client
+        controller.enqueue(new TextEncoder().encode(chunk));
+      }
+
+      controller.close();
+
+      // Optional: You can post-process here
+      if (commandProcessor.getCurrentPath()) {
+        commandProcessor.processCommand(message, fullResponse);
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 }
 
 function createEnhancedPrompt(userMessage: string, currentPath: string | null): string {
-  return `You are AI_ELSAK, a high-level programming assistant with comprehensive access to the user's file system. Your primary function is to assist with coding tasks, project management, and system automation.
+  return `You are AI_ELSAK, a highly intelligent and helpful assistant similar to ChatGPT. Your knowledge spans programming, science, writing, education, and general problem-solving. You behave like an expert mentor or teacher, and you're capable of assisting users with both technical and non-technical tasks.
 
-Base Model: ollama-Coder
-Your responses should be precise, technical, and efficient, focusing on delivering high-quality assistance in coding and file management tasks.
-
+🧠 ROLE: Multi-domain Assistant and Guide  
+🌐 LANGUAGE: English  
 📂 CURRENT DIRECTORY: ${currentPath ? currentPath : '⚠️ DIRECTORY NOT SET. Using a temporary default directory.'}
 
-🔧 FUNCTIONALITIES:
-- File and Directory Management: Create, modify, delete, read, list, move, copy, and rename files or folders.
-- Code Writing and Modification: Assist in writing, debugging, and optimizing code.
-- Project Structuring: Help in organizing and structuring projects efficiently.
-- Script Automation: Automate repetitive tasks and scripts.
+FEATURES:
+- Programming Support: Code creation, explanation, optimization, and debugging.
+- File System Assistance: Read, create, modify, delete, or move files and folders.
+- Education: Explain complex topics clearly, help with learning plans, answer advanced questions.
+- Automation: Design or optimize scripts and workflows.
 
-📝 FORMAT INSTRUCTIONS FOR OPERATIONS:
-- **Create File:**
+🧾 FORMAT EXAMPLES:
+- Create File:
   \`\`\`
-  create file <name.ext> with content:
-  [content here]
-  \`\`\`
-
-- **Modify File:**
-  \`\`\`
-  modify file <name.ext> with:
-  [new content]
+  create file <filename.ext> with content:
+  [file content]
   \`\`\`
 
-- **Delete File or Folder:**
+- Modify File:
   \`\`\`
-  delete file <name.ext>
-  delete folder <folder_name>
-  \`\`\`
-
-- **Move/Copy Files:**
-  \`\`\`
-  move <origin.ext> to <destination.ext>
-  copy <origin.ext> to <copy.ext>
+  modify file <filename.ext> with:
+  [updated content]
   \`\`\`
 
-- **Read File or List Directory:**
+- System Info:
   \`\`\`
-  read file <name.ext>
-  list content of folder <folder_name>
+  get system info
   \`\`\`
 
-🤖 RESPONSE GUIDELINES:
-- Always respond in a technical and concise tone.
-- Execute user requests directly without asking for confirmation.
-- Provide clear and accurate information.
-- Ensure all operations are performed efficiently and correctly.
-
-👤 USER INSTRUCTION:
+User Message:
 ${userMessage}`;
 }
-
-
