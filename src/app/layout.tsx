@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import PWAPrompt from "./components/PWAPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,31 +14,45 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Nayak - Your Personal AI Assistant",
-  description: "Personal AI assistant with Ollama integration. Smart chat, document analysis, and more.",
+  title: "AI Nayak - Code Assistant",
+  description: "Your local AI coding assistant powered by Llama. Requires Ollama to be installed.",
   manifest: "/manifest.json",
   icons: {
     icon: [
-      // SVG as primary icon (from public/)
-      { url: "/ai_nayak.svg", type: "image/svg+xml" },
-      
-      // PNGs as fallback (optional)
-      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" }
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" }
     ],
     apple: [
-      // Use SVG or PNG for Apple (Safari may prefer PNG)
-      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" }
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" }
     ],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AI Nayak"
+  },
+  formatDetection: {
+    telephone: false
+  },
+  openGraph: {
+    type: "website",
+    siteName: "AI Nayak",
+    title: "AI Nayak - Code Assistant",
+    description: "Your local AI coding assistant powered by Llama"
+  },
+  twitter: {
+    card: "summary",
+    title: "AI Nayak - Code Assistant",
+    description: "Your local AI coding assistant powered by Llama"
+  }
 };
 
 export const viewport = {
-  themeColor: "#000000",
+  themeColor: "#1f2937",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default function RootLayout({
@@ -49,6 +64,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
+        <PWAPrompt />
       </body>
     </html>
   );

@@ -113,7 +113,7 @@ REM Install Ollama if needed
 ollama --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo 🤖 Installing Ollama...
-    powershell -Command "& {Invoke-WebRequest -Uri 'https://ollama.ai/download/OllamaSetup.exe' -OutFile 'OllamaSetup.exe'; Start-Process -Wait -FilePath 'OllamaSetup.exe' -ArgumentList '/S'; Remove-Item 'OllamaSetup.exe'}"
+    powershell -Command "& {Invoke-WebRequest -Uri 'https://ollama.com/download/OllamaSetup.exe' -OutFile 'OllamaSetup.exe'; Start-Process -Wait -FilePath 'OllamaSetup.exe' -ArgumentList '/S'; Start-Sleep -Seconds 10; Remove-Item 'OllamaSetup.exe'}"
     echo ✅ Ollama installed
 )
 

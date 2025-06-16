@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Nayak - Offline</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            text-align: center;
+        }
+        .logo { font-size: 4rem; margin-bottom: 1rem; }
+        .title { font-size: 2.5rem; margin-bottom: 1rem; font-weight: 300; }
+        .message { font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9; max-width: 600px; line-height: 1.6; }
+        .requirements {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+        }
+        .requirement {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+        .requirement-icon { margin-right: 1rem; font-size: 1.5rem; }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">🤖</div>
+    <div class="title">AI Nayak is Offline</div>
+    <div class="message">
+        Para usar AI Nayak necesitas tener Ollama ejecutándose localmente en tu sistema.
+    </div>
+    
+    <div class="requirements">
+        <h3>Requisitos:</h3>
+        <div class="requirement">
+            <span class="requirement-icon">📥</span>
+            <span>Instalar Ollama desde ollama.ai</span>
+        </div>
+        <div class="requirement">
+            <span class="requirement-icon">🤖</span>
+            <span>Descargar modelo: <code>ollama pull llama3.2:3b</code></span>
+        </div>
+        <div class="requirement">
+            <span class="requirement-icon">🚀</span>
+            <span>Ejecutar: <code>ollama serve</code></span>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <a href="https://ollama.ai" class="button" target="_blank">Descargar Ollama</a>
+            <a href="/" class="button">Intentar de nuevo</a>
+        </div>
+    </div>
+</body>
+</html>

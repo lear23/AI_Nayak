@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model,
       prompt: enhancedPrompt,
-      stream: true,
+      stream: false,
     }),
   });
 
